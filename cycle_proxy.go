@@ -21,43 +21,33 @@ func NewCycleProxy(proxies []string) *CycleProxy {
 	}
 }
 
-func (cycle *CycleProxy) Randomize() *CycleProxy {
-	cycle.Index = rand.Intn(len(cycle.Proxies) - 1)
-	return cycle
+func (cycle *CycleProxy) Shuffle() {
+	//cycle.Index = rand.Intn(cycle.Length() - 1)
+	rand.Shuffle(cycle.Length(), func(i, j int) {
+		cycle.Proxies[i], cycle.Proxies[j] = cycle.Proxies[j], cycle.Proxies[i]
+	})
 }
 
-func (cycle *CycleProxy) NextProxy() (*url.URL, error) {
-	nextProxy, err := cycle.Next()
-	if err != nil {
-		return nil, err
-	}
-	return url.Parse(nextProxy)
-}
-
-func (cycle *CycleProxy) Next() (string, error) {
+func (cycle *CycleProxy) Next() (*url.URL, error) {
 	cycle.Mutex.Lock()
 	defer cycle.Mutex.Unlock()
 
-	if len(cycle.Proxies) == 0 {
-		return "", fmt.Errorf("proxies is empty")
+	if cycle.Length() == 0 {
+		return nil, fmt.Errorf("proxies is empty")
 	}
 
 	cycle.Index = cycle.Index + 1
-	if cycle.Index >= len(cycle.Proxies) {
+	if cycle.Index >= cycle.Length() {
 		cycle.Index = 0
 	}
 
-	return cycle.Proxies[cycle.Index], nil
+	return url.Parse(cycle.Proxies[cycle.Index])
 }
 
-func (cycle *CycleProxy) CurrentProxy() (*url.URL, error) {
-	return url.Parse(cycle.Current())
-}
-
-func (cycle *CycleProxy) Current() string {
+func (cycle *CycleProxy) Now() (*url.URL, error) {
 	cycle.Mutex.Lock()
 	defer cycle.Mutex.Unlock()
-	return cycle.Proxies[cycle.Index]
+	return url.Parse(cycle.Proxies[cycle.Index])
 }
 
 func (cycle *CycleProxy) Length() int {
